@@ -17,7 +17,9 @@ struct ArticleAPIService {
 
         do {
             let (data, _) =  try await URLSession.shared.data(for: request)
-            let result = try JSONDecoder().decode(ArticleResult.self, from: data)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let result = try decoder.decode(ArticleResult.self, from: data)
 
             return result.articles.results
         } catch {
@@ -73,12 +75,15 @@ struct ArticlesMeta: Codable {
 
 // MARK: - Result
 struct Article: Codable, Hashable, Identifiable {
-    let id = UUID()
+    var id: String {
+        uri
+    }
+
     let uri: String
     let lang: String
     let isDuplicate: Bool
     let date, time: String
-    let dateTime, dateTimePub: String
+    let dateTime, dateTimePub: Date
     let sim: Double
     let url: String
     let title, body: String
@@ -88,12 +93,6 @@ struct Article: Codable, Hashable, Identifiable {
     let eventURI: String?
     let sentiment: Double?
     let wgt, relevance: Int
-
-    enum CodingKeys: String, CodingKey {
-        case uri, lang, isDuplicate, date, time, dateTime, dateTimePub, sim, url, title, body, source, authors, image
-        case eventURI = "eventUri"
-        case sentiment, wgt, relevance
-    }
 
     static func == (lhs: Article, rhs: Article) -> Bool {
         lhs.id == rhs.id
