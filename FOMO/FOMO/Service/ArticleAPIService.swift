@@ -8,8 +8,8 @@
 import Foundation
 
 struct ArticleAPIService {
-    func fetchArticles(_ keyword: String = "") async -> [Article]{
-        let requestData = createRequestBody(withKeyword: keyword)
+    func fetchArticles(_ keyword: String = "", category: SegmentetThemes) async -> [Article]{
+        let requestData = createRequestBody(withKeyword: keyword, category: category)
         var request = URLRequest(url: URL(string: "https://eventregistry.org/api/v1/article/")!)
         request.httpMethod = "POST"
         request.httpBody = requestData
@@ -21,6 +21,7 @@ struct ArticleAPIService {
             decoder.dateDecodingStrategy = .iso8601
             let result = try decoder.decode(ArticleResult.self, from: data)
 
+            print("***", result.articles.results.count)
             return result.articles.results
         } catch {
             fatalError(error.localizedDescription)
@@ -29,37 +30,37 @@ struct ArticleAPIService {
 }
 
 private extension ArticleAPIService {
-    func createRequestBody(withKeyword keyword: String = "") -> Data {
-        let requestBody: [String: Any] = [
-            "apiKey":"d7ef0381-b903-42c3-b709-28941051b9fb",
-            "action": "getArticles",
-            "keyword": keyword,
-            "sourceLocationUri": [
-                "http://en.wikipedia.org/wiki/United_States",
-                "http://en.wikipedia.org/wiki/Canada",
-                "http://en.wikipedia.org/wiki/United_Kingdom"
-            ],
-            "ignoreSourceGroupUri": "paywall/paywalled_sources",
-            "articlesPage": 1,
-            "articlesCount": 10,
-            "articlesSortBy": "date",
-            "articlesSortByAsc": false,
-            "dataType": [
-                "news",
-                "pr"
-            ],
-            "forceMaxDataTimeWindow": 31,
-            "resultType": "articles"
-        ]
-
-        do {
-            let data = try JSONSerialization.data(
-                withJSONObject: requestBody,
-                options: [])
-            return data
-        } catch {
-            fatalError("Error encoding JSON: \(error)")
+    func createRequestBody(withKeyword keyword: String = "", category: SegmentetThemes) -> Data {
+        let body = """
+        {
+        "apiKey": "d7ef0381-b903-42c3-b709-28941051b9fb",
+        "action": "getArticles",
+        "articlesPage": 1,
+        "articlesCount": 100,
+        "articlesSortBy": "date",
+        "articlesSortByAsc": false,
+        "dataType": [
+        "news",
+        "pr"
+        ],
+        "forceMaxDataTimeWindow": 31,
+        "resultType": "articles",
+        "query": {
+        "$query": {
+        "$and": [
+        {
+          "keyword": "\(keyword)"
+        },
+        {
+          "categoryUri": "\(category.dmozValue)"
         }
+        ]
+        }
+        }
+        }
+        """.data(using: .utf8)!
+
+        return body
     }
 }
 

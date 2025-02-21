@@ -1,13 +1,22 @@
 import SwiftUI
 import Combine
 
-
 enum SegmentetThemes: String, CaseIterable {
-    case all = "All"
+    case politics = "Politics"
     case tech = "Tech"
     case business = "Business"
     case sports = "Sports"
-    case world = "World"
+    case health = "Health"
+
+    var dmozValue: String {
+        return switch self {
+        case .politics: "news/Politics"
+        case .tech: "news/Technology"
+        case .business: "news/Business"
+        case .sports: "news/Sports"
+        case .health: "news/Health"
+        }
+    }
 }
 
 
@@ -15,7 +24,7 @@ struct HomeView: View {
     let service = ArticleAPIService()
     @StateObject private var observer = SearchObserver()
     @State private var articles: [Article] = []
-    @State var segmentetThemes: SegmentetThemes = .all
+    @State var segmentetThemes: SegmentetThemes = .politics
     @State private var article: Article?
 
     var body: some View {
@@ -36,6 +45,11 @@ struct HomeView: View {
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
             }
+            .overlay {
+                if articles.isEmpty {
+                    ContentUnavailableView.search
+                }
+            }
             .buttonStyle(ListButtonStyle())
             .listStyle(.plain)
             .searchable(text: $observer.searchText, prompt: "Search news...")
@@ -48,10 +62,10 @@ struct HomeView: View {
                 await performSearchArticles()
             }
             .navigationTitle("Articles")
-            .onChange(of: segmentetThemes) { _ , newValue in
+            .onChange(of: segmentetThemes) { _ , _ in
                 Task {
-                    observer.searchText = newValue.rawValue
-                   // await performSearchArticles(newValue.rawValue)
+//                    observer.searchText = newValue.rawValue
+                    await performSearchArticles(observer.debouncedText)
                 }
             }
             .onChange(of: observer.debouncedText) { _ , newValue in
@@ -137,7 +151,7 @@ struct HomeView: View {
 private extension HomeView {
     @MainActor
     func performSearchArticles(_ keyword: String = "") async {
-        let articles = await self.service.fetchArticles(keyword)
+        let articles = await self.service.fetchArticles(keyword, category: segmentetThemes)
         withAnimation(.bouncy) {
             self.articles = articles
         }
