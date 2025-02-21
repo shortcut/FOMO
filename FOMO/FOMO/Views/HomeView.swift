@@ -59,6 +59,10 @@ struct HomeView: View {
                 }
             }
             .task {
+                guard articles.isEmpty else {
+                    return
+                }
+
                 await performSearchArticles()
             }
             .navigationTitle("Articles")
