@@ -1,4 +1,6 @@
 import SwiftUI
+import Combine
+
 
 enum SegmentetThemes: String, CaseIterable {
     case all = "All"
@@ -10,73 +12,78 @@ enum SegmentetThemes: String, CaseIterable {
 
 struct HomeView: View {
     let service = ArticleAPIService()
+    @StateObject private var observer = SearchObserver()
     @State private var articles: [Article] = []
     @State var segmentetThemes: SegmentetThemes = .all
 
     var body: some View {
         NavigationStack {
-            List(articles, id: \.id) { article in
-                Button(action: {
-                    
-                }, label: {
+            List(articles) { article in
+                Button {
+
+                } label: {
                     VStack(spacing: 8) {
                         if let url = URL(string: article.image ?? "") {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(maxWidth: .infinity)
-                                        .clipShape(
-                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        )
-                                        .overlay(alignment: .topTrailing) {
-                                            Text("Breaking news")
-                                                .font(.caption)
-                                                .padding(4)
-                                                .background(.red.gradient)
-                                                .foregroundStyle(.white)
-                                                .clipShape(Capsule())
-                                                .rotationEffect(.degrees(27.5))
-                                                .offset(x: 10, y: 10)
-                                        }
-                                    
-                                default:
-                                    EmptyView()
+                            HStack {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(maxWidth: .infinity)
+                                            .clipShape(
+                                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                            )
+                                            .overlay(alignment: .topTrailing) {
+                                                Text("Breaking news")
+                                                    .font(.caption)
+                                                    .padding(4)
+                                                    .background(.red.gradient)
+                                                    .foregroundStyle(.white)
+                                                    .clipShape(Capsule())
+                                                    .rotationEffect(.degrees(27.5))
+                                                    .offset(x: 10, y: 10)
+                                            }
+                                        
+                                    default:
+                                        EmptyView()
+                                    }
                                 }
                             }
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Color.blue.gradient.opacity(0.2))
+                            )
                         }
-                        
+
                         Text(article.title)
                             .font(.system(.title3, design: .monospaced, weight: .semibold))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        
+
                         Text(article.body)
                             .lineLimit(3)
                             .foregroundStyle(.secondary)
-                        
+
                         HStack {
                             Text(article.dateTimePub, style: .relative)
                                 .animation(.smooth)
-                            
+
                             Text(article.source.title)
-                            
+
                             Spacer()
                             Button {
-                                
+
                             } label: {
                                 Image(systemName: "bookmark")
                             }
-                            
-                            
+
                         }
                         .font(.caption)
                         .bold()
                         .foregroundStyle(.tertiary)
                         .padding(.vertical)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -85,7 +92,7 @@ struct HomeView: View {
                             .stroke(style: .init(lineWidth: 0.5))
                             .foregroundStyle(.separator)
                     )
-                })
+                }
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
             }
@@ -101,15 +108,22 @@ struct HomeView: View {
                     .pickerStyle(SegmentedPickerStyle())
                 }
             })
-            
+            .searchable(text: $observer.searchText, prompt: "Search news...")
             .task {
-                await performSearchArticles("Elon musk")
+                await performSearchArticles()
+            }
+            .navigationTitle("Articles")
+            .onChange(of: observer.debouncedText) { _ , newValue in
+                Task {
+                    await performSearchArticles(newValue)
+                }
             }
         }
     }
 }
 
 private extension HomeView {
+    @MainActor
     func performSearchArticles(_ keyword: String = "") async {
         let articles = await self.service.fetchArticles(keyword)
         withAnimation(.bouncy) {
@@ -127,5 +141,22 @@ struct ListButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.9 : 1)
             .animation(.bouncy, value: configuration.isPressed)
+    }
+}
+
+
+final class SearchObserver: ObservableObject {
+    @Published var debouncedText = ""
+    @Published var searchText = ""
+
+    private var subscriptions = Set<AnyCancellable>()
+
+    init() {
+        $searchText
+            .debounce(for: .seconds(1), scheduler: DispatchQueue.main)
+            .sink(receiveValue: { [weak self] t in
+                self?.debouncedText = t
+            } )
+            .store(in: &subscriptions)
     }
 }
