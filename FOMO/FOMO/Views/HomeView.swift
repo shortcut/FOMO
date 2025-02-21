@@ -24,30 +24,37 @@ struct HomeView: View {
                 } label: {
                     VStack(spacing: 8) {
                         if let url = URL(string: article.image ?? "") {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(maxWidth: .infinity)
-                                        .clipShape(
-                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        )
-                                        .overlay(alignment: .topTrailing) {
-                                            Text("Breaking news")
-                                                .font(.caption)
-                                                .padding(4)
-                                                .background(.red.gradient)
-                                                .foregroundStyle(.white)
-                                                .clipShape(Capsule())
-                                                .rotationEffect(.degrees(27.5))
-                                                .offset(x: 10, y: 10)
-                                        }
-                                default:
-                                    EmptyView()
+                            HStack {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(maxWidth: .infinity)
+                                            .clipShape(
+                                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                            )
+                                            .overlay(alignment: .topTrailing) {
+                                                Text("Breaking news")
+                                                    .font(.caption)
+                                                    .padding(4)
+                                                    .background(.red.gradient)
+                                                    .foregroundStyle(.white)
+                                                    .clipShape(Capsule())
+                                                    .rotationEffect(.degrees(27.5))
+                                                    .offset(x: 10, y: 10)
+                                            }
+                                        
+                                    default:
+                                        EmptyView()
+                                    }
                                 }
                             }
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Color.blue.gradient.opacity(0.2))
+                            )
                         }
 
                         Text(article.title)
