@@ -39,7 +39,7 @@ struct HomeView: View {
 
 private extension HomeView {
     func performSearchArticles(_ keyword: String = "") async {
-        let articles = await self.service.fetchArticles()
+        let articles = await self.service.fetchArticles(keyword)
         withAnimation(.bouncy) {
             self.articles = articles
         }
