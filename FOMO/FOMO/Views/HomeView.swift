@@ -10,25 +10,19 @@ enum SegmentetThemes: String, CaseIterable {
     case world = "World"
 }
 
+
 struct HomeView: View {
     let service = ArticleAPIService()
     @StateObject private var observer = SearchObserver()
     @State private var articles: [Article] = []
     @State var segmentetThemes: SegmentetThemes = .all
+    @State private var article: Article?
 
     var body: some View {
         NavigationStack {
-//            Picker("", selection: $segmentetThemes) {
-//                ForEach(SegmentetThemes.allCases, id: \.self) { theme in
-//                    Text(theme.rawValue)
-//                }
-//            }
-//            .pickerStyle(SegmentedPickerStyle())
-//            .padding(.horizontal)
-
             List(articles) { article in
                 Button {
-
+                    self.article = article
                 } label: {
                     sumeST(article)
                         .frame(maxWidth: .infinity)
@@ -44,16 +38,6 @@ struct HomeView: View {
             }
             .buttonStyle(ListButtonStyle())
             .listStyle(.plain)
-//            .toolbar(content: {
-//                ToolbarItemGroup(placement: .principal) {
-//                    Picker("", selection: $segmentetThemes) {
-//                        ForEach(SegmentetThemes.allCases, id: \.self) { theme in
-//                            Text(theme.rawValue)
-//                        }
-//                    }
-//                    .pickerStyle(SegmentedPickerStyle())
-//                }
-//            })
             .searchable(text: $observer.searchText, prompt: "Search news...")
             .searchScopes($segmentetThemes, activation: .onSearchPresentation) {
                 ForEach(SegmentetThemes.allCases, id: \.self) { theme in
@@ -74,6 +58,9 @@ struct HomeView: View {
                 Task {
                     await performSearchArticles(newValue)
                 }
+            }
+            .navigationDestination(item: $article) {  
+                DetailView(article: $0)
             }
         }
     }
